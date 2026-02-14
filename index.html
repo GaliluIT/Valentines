@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ambient</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+
+    #bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      z-index: 0;
+    }
+
+    /* Play button overlay — needed because browsers block autoplay */
+    #play-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.5);
+      cursor: pointer;
+      transition: opacity 0.6s ease;
+    }
+
+    #play-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #play-btn {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.8);
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    #play-btn:hover {
+      transform: scale(1.1);
+      background: rgba(255,255,255,0.2);
+    }
+
+    #play-btn svg {
+      width: 36px;
+      height: 36px;
+      margin-left: 4px;
+      fill: rgba(255,255,255,0.9);
+    }
+  </style>
+</head>
+<body>
+
+  <img id="bg" src="background.jpg" alt="Background">
+
+  <div id="play-overlay">
+    <div id="play-btn">
+      <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+    </div>
+  </div>
+
+  <script>
+    const TRACK_COUNT = 17;
+    const tracks = [];
+
+    // Build track list
+    for (let i = 1; i <= TRACK_COUNT; i++) {
+      const num = String(i).padStart(2, '0');
+      tracks.push(`audio/track${num}.mp3`);
+    }
+
+    let currentIndex = 0;
+
+    // We use two audio elements and crossfade-preload for gapless playback
+    const audioA = new Audio();
+    const audioB = new Audio();
+    let current = audioA;
+    let next = audioB;
+
+    function preloadNext() {
+      const nextIndex = (currentIndex + 1) % TRACK_COUNT;
+      next.src = tracks[nextIndex];
+      next.preload = 'auto';
+      next.load();
+    }
+
+    function playCurrent() {
+      current.src = tracks[currentIndex];
+      current.preload = 'auto';
+      current.load();
+      current.play();
+      preloadNext();
+    }
+
+    function onTrackEnded() {
+      currentIndex = (currentIndex + 1) % TRACK_COUNT;
+
+      // Swap audio elements
+      const temp = current;
+      current = next;
+      next = temp;
+
+      current.play();
+      preloadNext();
+    }
+
+    audioA.addEventListener('ended', onTrackEnded);
+    audioB.addEventListener('ended', onTrackEnded);
+
+    // Start on click (browser autoplay policy)
+    document.getElementById('play-overlay').addEventListener('click', () => {
+      document.getElementById('play-overlay').classList.add('hidden');
+      currentIndex = 0;
+      playCurrent();
+    });
+  </script>
+
+</body>
+</html>
